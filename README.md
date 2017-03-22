@@ -4,6 +4,9 @@ Introspy-Android
 Blackbox tool to help understand what an Android application is doing at runtime
 and assist in the identification of potential security issues.
 
+I (Alei Salem) am currently using this extended version of introspy to monitor the
+runtime behavior of Android apps within the context of malware analysis and detection.
+
 
 Description
 -----------
@@ -26,10 +29,7 @@ See http://isecpartners.github.io/introspy-android/ for a quick introduction.
 
 Usage
 ---------------
-
-
 * Ensure that Cydia Substrate has been deployed on your test device. The installer requires a rooted device and can be found on the Google Play store at https://play.google.com/store/apps/details?id=com.saurik.substrate&hl=en 
-* Download the pre-compiled APK available at https://github.com/iSECPartners/Introspy-Android
 * Install Introspy-Android Core.apk on a device where Cydia Substrate is installed with:
 
         adb install Introspy-Android Core.apk
@@ -38,8 +38,7 @@ Usage
 
         adb install Introspy-Android Config.apk
 
-The Instrospy-Android Config application displays apps the Core application will hook and the
-various filters and options applied to them. This application need root access (you can use supersu to give temporary root access to the application). The changes are dynamic and you do not need to restard the applications for them to be effective.
+The Instrospy-Android Config application displays apps the Core application will hook and the various filters and options applied to them. This application need root access (you can use supersu to give temporary root access to the application). The changes are dynamic and you do not need to restart the applications for them to be effective.
 
 * Once configured with the Config application, logs are dumped in the system logs and in a database in the directory of the application hooked (in databases/introspy.db)
 * To generate an html report using the generated database, you can use the Introspy-Analyzer (by A.Diquet and T.Daniels: https://github.com/iSECPartners/Introspy-Analyzer)
@@ -47,6 +46,8 @@ various filters and options applied to them. This application need root access (
 It should be noted that the Core application can work on a device running Android 2.3 and above whereas the Config application can only run from Android 3.0 on due to the use of specific APIs. In order to test applications on older SDKs without the GUI by only using the Core application, you can simply create a file named "introspy.config" containing filters you want to hook in the directory of the applications you want to test. Example:
 
         adb shell su -c echo "GENERAL CRYPTO, KEY, HASH, FS, IPC, PREF, URI, WEBVIEW" > /data/data/com.YOUR_APP_NAME/introspy.config
+
+* If you wish to monitor further API calls e.g. Camera calls, make sure to include "CUSTOM_HOOKS" in the adb command above.
 
 ### How to uninstall
 
@@ -132,6 +133,83 @@ stack (comprising of 3 calls) for the selected filters.
 ###### SQLite:
 * Log data passed to execSQL, update*, insert*, replace
 
+### CUSTOM_HOOKS (Added by Alei):
+###### AccountManager:
+* Log calls to the Google account manager e.g. getPassword, setPassword, peekAuthToken, et cetera
+
+###### Activities:
+* Logs information about starting and manipulating activities
+
+###### AudioRecord:
+* Logs information about audio recording to detect apps spying on users' calls and speech
+
+###### Camera:
+* Logs information the camera usage to detect apps spying on users' privacy e.g. blackmailing malware
+
+###### Class:
+* Used primarily to detect reflection and dynamic code loading (popular among recent malware instances)
+
+###### ContentResolver:
+* Used as a redundant method to log calls to content providers like SQLite databases
+
+###### ContextWrapper:
+* Logs miscellaneous calls to manipulate files and services
+
+###### DisplayManager:
+* Logs calls related to the display (sometimes used by Tapjacking-based malware)
+
+###### DownloadManager:
+* What is being downloaded by apps?
+
+###### HttpCookie:
+* Logs information about getting and setting values of HTTP cookies
+
+###### IntentService:
+* Logs one call from the IntentService class viz., "onStartCommand"
+
+###### Location:
+* Logs information on getting the current location of a device
+
+###### MediaRecorder:
+* More logging of media-related calls e.g. setCamera
+
+###### Network:
+* A couple of network-related calls i.e. bindSocket and openConnection
+
+###### NetworkInfo:
+* Logs calls to inquire about the carrier network
+
+###### PackageInstaller:
+* Logs calls to the package installer to detect apps installing further content (could be malware payloads)
+
+###### PowerManager:
+* Logs calls to the power manager that includes rebooting the device
+
+###### Process:
+* Logging calls to kill processes (could be that a malware instance is killing an antiviral app)
+
+###### SmsManager:
+* A standard method of communication between bots and C&C centers. Also used to spread malicious links.
+
+###### SQLiteDatabase:
+* Calls to SQLite databases. Sometimes developers use that directly instead of using content resolvers
+
+###### Toast:
+* Displaying messages to user. Sometimes used to continually cover the display as part of Tapjacking attacks on older versions of Android
+
+###### URL:
+* Any URL's being opened?
+
+###### Vibrator:
+* Some malicious apps use this as a warning technique when displaying messages to users e.g. ransomeware
+
+###### WifiInfo:
+* Logs generic information about the WiFi networks available
+
+###### WifiManager:
+* Logging calls complementary to the WiFiInfo class
+
+
 Doing It Yourself
 -----------------
 
@@ -141,14 +219,26 @@ Most users should just download and install the pre-compiled packages.
 However, if you want to modify the tool's functionality you will have to
 clone the source repository and build the packages yourself.
 
-    git clone https://github.com/iSECPartners/introspy-android.git
+* To avoid the heartache I encountered during extending the tool, here are some steps you can follow to make your life easier:
+1. Clone the repo (whether the original: https://github.com/iSECPartners/introspy-android.git) or this one.
+2. Open project using Eclipse
+3. Right-click the project name > Configure > Convert to ADT Android Project ...
+4. Then you need to add the Cydia Substrate SDK to eclipse. See here for instructions on how to do so: http://www.cydiasubstrate.com/id/73e45fe5-4525-4de7-ac14-6016652cc1b8/.
+5. [Optional] Check the "Java Build Path" configuration in the project properties.
+6. [Optional] I use Genymotion as my emulator. Make sure you start Eclipse before you start your AVD. Otherwise, Eclipse neon on Ubuntu does not see it as a running AVD.
+7. Right-click project > Run as Android Application, or simply use the green play button.
 
-Then you need to add the Cydia Substrate SDK to eclipse. See here for instructions on how to do so: http://www.cydiasubstrate.com/id/73e45fe5-4525-4de7-ac14-6016652cc1b8/.
 
 ### Adding hooks
-Adding hooks is simple and can be done within the com.introspy.custom_hooks module. See the pre-filled example in the code (CustomHookList.java and HookExampleImpl.java) and make sure to enable the "CUSTOM HOOKS" option in the Introspy Config application. See http://isecpartners.github.io/Introspy-Android/ for more instructions.
+It is a pretty simple and mechanical process. You need to:
+1. Declare your hook into the "CustomeHookList.java" file, pointing IT to a new class e.g. Intro_APIX_MyHookedCall. Yes, every hook should have a class that extends "IntroHook"
+2. You can group multiple hooks into a single Java file, if they have something in common e.g. belong to the same class/package or so.
+3. For every hook, create the separate class as mentioned before and override the "execute" method. This is where you can log a method call.
 
-Notes: Some methods simply cannot be hooked due to potential issues in Cydia Substrate and the hook may just crash the process. Also, make sure to not try hooking abstract methods as it just throws an exception that is never caught by Cydia Substrate (and will just crash the process). You need to hook their implementation, which is sometimes not documented but can be easily found in the Android code base (for example: android.content.Context is implemented in android.content.ContextImpl).
+#Notes: 
+* Some methods simply cannot be hooked due to potential issues in Cydia Substrate and the hook may just crash the process.
+* Also, make sure to not try hooking abstract methods as it just throws an exception that is never caught by Cydia Substrate (and will just crash the process). You need to hook their implementation, which is sometimes not documented but can be easily found in the Android code base (for example: android.content.Context is implemented in android.content.ContextImpl).
+* To add to the above: Hooking methods of abstract classes (e.g. ContentProvider) would always result into a segmentation fault (SIGSEGV) because the methods are not implemented and Introspy cannot hook into them. Go for one of the implementations of such classes such as "ContentProviderClient".
 
 License
 -------
@@ -158,4 +248,5 @@ See ./LICENSE.
 Author
 -------
 
-Marc Blanchou
+Marc Blanchou (original)
+Alei Salem (extended)

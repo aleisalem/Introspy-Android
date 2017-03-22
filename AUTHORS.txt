@@ -1,13 +1,14 @@
 Creators
 --------
-Marc Blanchou
+Marc Blanchou (Original author)
+Alei Salem (Extension author) 
 
 
 Maintainers
 -----------
-...
+Alei Salem (salem@in.tum.de)
 
 
 Contributors
 ------------
-...
+Alei Salem (salem@in.tum.de)

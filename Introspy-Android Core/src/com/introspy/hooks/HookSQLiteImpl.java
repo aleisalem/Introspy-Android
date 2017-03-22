@@ -33,7 +33,7 @@ class Intro_SQLite_INSERT extends IntroHook {
 		_logBasicInfo();
 	
 		_logParameter("Table", args[0]);
-		_logParameter("Content Values", args[1]);
+		_logParameter("Content Values", args[2]);
 		
 		_logFlush_I("-> " + "Table: " + args[0] + ", " +
 						"ContentValues: " + args[2]);
